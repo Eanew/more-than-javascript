@@ -1,0 +1,11 @@
+{
+  "name": "more-than-javascript",
+  "version": "1.0.0",
+  "description": "it's how i <3 you",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Eanue",
+  "license": "ISC"
+}
