@@ -1,7 +1,8 @@
-// TODO: Невидимый пробел в конце и смещение ВСЕХ формул на 1 символ (независимая от анимаций каретка).
-// TODO: Функция-обёртка над typeText для задания временных промежутков между вводом символов.
+// TODO: Функция рандомизации временных промежутков во время печати.
+// TODO: Функции-обёртки над typeText, deleteText, jump для задания временных промежутков во время печати.
+// TODO: Массив "что я люблю".
+// TODO: Демо.
 // TODO: Возможность изменять классы существующих символов без путешествий каретки.
-// TODO: Путешествие каретки без изменения текста (имитация навигации).
 // TODO: Подсказка с переводом на русский язык при наведении на текст.
 
 const CHAR_ELEMENT_TAG = 'input'
@@ -43,8 +44,8 @@ const getResult = () => getCharElements().reduce((result, {value}) => result + v
 const getCharWidth = () => parseFloat(getComputedStyle(textWrapper).width) / getResult().length || 0
 
 const getRange = text => {
-    const start = getResult().match(text)?.index
-    const end = start + text.length
+    const start = getResult().match (text)?.index
+    const end = Math.max(start + text.length - 1, start)
 
     return [start, end]
 }
@@ -62,48 +63,59 @@ const createChar = (value, classList = Class.EMPTY) => {
 const insertChar = (char, nextChar) => textWrapper[nextChar ? 'insertBefore' : 'appendChild'](char, nextChar)
 
 const setCaret = char => {
-    if (!char) return
-
     const index = getCharElements().findIndex(element => element === char)
-    const [, caretPosition] = getRange(char.value)
+    const caretPosition = char?.value.length
 
     textOffset += (index - caretIndex) * getCharWidth() * OffsetMultiplier[typeAlign]
     textWrapper.style.marginLeft = textOffset + 'px'
     caretIndex = index
-    char.focus()
-    char.setSelectionRange(caretPosition, caretPosition)
+    char?.focus()
+    char?.setSelectionRange(caretPosition, caretPosition)
 }
 
-const typeText = (text, classList = Class.EMPTY, from = caretIndex + 1) => {
-    if (typeof from === 'string') [, from] = getRange(from)
+const jump = (to = getCharElements().length - 1) => {
+    if (typeof to === 'string') [, to] = getRange(to)
 
+    const lastAlign = typeAlign
+
+    typeAlign = TypeAlign.START
+    setCaret(getCharElements(to))
+    typeAlign = lastAlign
+}
+
+const typeText = (text, classList = Class.EMPTY) => {
+    const from = caretIndex + 1
     const nextChar = getCharElements(from)
 
-    for (let index = from; index < from + text.length; index++) {
-        const char = createChar(text[index - from], classList)
+    let lastChar
 
-        insertChar(char, nextChar)
-        setCaret(char)
+    for (let index = from; index < from + text.length; index++) {
+        lastChar = createChar(text[index - from], classList)
+        insertChar(lastChar, nextChar)
+        setCaret(lastChar)
     }
+
+    return lastChar
 }
 
-const deleteText = (from = caretIndex, to = from + 1) => {
-    if (typeof from === 'string') [from, to] = getRange(from)
+const deleteText = (from = caretIndex - 1, to = from + 1) => {
+    if (typeof from === 'string') {
+        [from, to] = getRange(from)
+        from--
+    }
 
     for (let index = to; index > from; index--) {
-        const char = getCharElements(index - 1)
-        const previousChar = getCharElements(index - 2)
+        const char = getCharElements(index)
+        const previousChar = getCharElements(index - 1)
 
-        char.remove()
+        char?.remove()
         setCaret(previousChar)
     }
 }
 
 const replaceText = (currentText, replacement, classList = Class.EMPTY) => {
-    const [from, to] = getRange(currentText)
-
-    deleteText(from, to)
-    typeText(replacement, classList, from)
+    deleteText(currentText)
+    typeText(replacement, classList)
 }
 
 const align = {
@@ -120,24 +132,36 @@ textWrapper.focus()
 
 // <tests>
 
-const speed = 500
 const text = 'I l❤ve you even more than JavaScript'
 
 let time = 0
+let speed = 0
 
 setTimeout(() => typeText(text[0]), time += speed)
 setTimeout(() => typeText(text[1]), time += speed)
 setTimeout(() => typeText(text[2]) || align.end(), time += speed)
-setTimeout(() => typeText(text[3], Class.HEART), time += speed)
+setTimeout(() => typeText(text[3], Class.HEART).blur(), time += speed)
 setTimeout(() => typeText(text[4]), time += speed)
 setTimeout(() => typeText(text[5]), time += speed)
+speed = 600
 setTimeout(() => deleteText(), time += speed)
 setTimeout(() => typeText(text[5]) || align.start(), time += speed)
 setTimeout(() => typeText(' you'), time += speed)
 setTimeout(() => typeText(' more') || align.center(), time += speed)
 setTimeout(() => typeText(' than'), time += speed)
+setTimeout(() => deleteText('❤'), time += speed)
 setTimeout(() => deleteText(' than'), time += speed)
-setTimeout(() => replaceText(' more', ' even more'), time += speed)
-setTimeout(() => typeText(' than JavaScript'), time += speed)
+setTimeout(() => align.end(), time += speed)
+setTimeout(() => typeText(' than'), time += speed)
+setTimeout(() => jump('you '), time += speed)
+setTimeout(() => typeText('even '), time += speed)
+setTimeout(() => jump(), time += speed)
+setTimeout(() => replaceText(' than', ' than JavaScript'), time += speed)
+setTimeout(() => jump('I l'), time += speed)
+setTimeout(() => typeText('❤', Class.HEART).blur(), time += speed)
+setTimeout(() => jump(0), time += speed)
+setTimeout(() => align.start(), time += speed)
+setTimeout(() => deleteText(), time += speed)
+setTimeout(() => typeText('I'), time += speed)
 
 // </tests>
