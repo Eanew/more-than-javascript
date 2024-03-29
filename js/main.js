@@ -179,6 +179,10 @@ const text = {
         }
     },
 
+    async pause(min, max) {
+        await defer(() => {}, min, max)
+    },
+
     blur() {
         lastTypedChar.blur()
     },
@@ -205,7 +209,7 @@ text.setSpeed(200, 700)
 const testText = 'I l❤ve you even more than JavaScript'
 
 const start = async () => {
-    text.setSpeed(200, 400)
+    text.setSpeed(0)
     await text.type(testText[0])
     await text.type(testText[1])
     await text.type(testText[2])
@@ -231,8 +235,11 @@ const start = async () => {
     await text.type('even ')
     await text.jump()
     await text.replace(' than', ' than JavaScript', Class.DEFAULT, 200, 500)
+    await text.pause(500)
     await text.replace(' than JavaScript', ' than')
+    await text.pause(500)
     await text.replace(' than', ' than JavaScript')
+    await text.pause(500)
     await text.jump(/I l/)
     // text.setSpeed(500) // debug
     await text.type('❤', Class.HEART)
