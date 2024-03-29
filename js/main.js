@@ -1,6 +1,3 @@
-// TODO: Проверка на min = 0 и max = 0 для мгновенных действий за 1 рендер.
-// TODO: Массив "что я люблю".
-// TODO: Демо.
 // TODO: Возможность изменять классы существующих символов без путешествий каретки.
 // TODO: Подсказка с переводом на русский язык при наведении на текст.
 
@@ -144,9 +141,10 @@ const text = {
     },
 
     async delete(text, min, max) {
-        ;[min, max] = parseSpeed(min, max)
-        ;[from = caretIndex - 1, to = from + 1] = getRange(text)
+        let [from = caretIndex - 1, to = from + 1] = getRange(text)
+
         from -= Boolean(text)
+        ;[min, max] = parseSpeed(min, max)
 
         if (min === 0 && max === 0) return deleteText(from, to)
 
@@ -160,13 +158,14 @@ const text = {
 
         if (min === 0 && max === 0) return replaceText(current, update, classList)
 
-        await this.delete(current, min, max)
-        await this.type(update, classList, min, max)
+        await text.delete(current, min, max)
+        await text.type(update, classList, min, max)
     },
 
     async jump(text, min, max) {
+        const [, to = getCharElements().length - 1] = getRange(text)
+
         ;[min, max] = parseSpeed(min, max)
-        ;[, to = getCharElements().length - 1] = getRange(text)
 
         if (min === 0 && max === 0) return jump(to)
 
@@ -204,55 +203,4 @@ textWrapper.addEventListener('keypress', preventAction)
 textWrapper.focus()
 text.setSpeed(200, 700)
 
-// <tests>
-
-const testText = 'I l❤ve you even more than JavaScript'
-
-const start = async () => {
-    text.setSpeed(0)
-    await text.type(testText[0])
-    await text.type(testText[1])
-    await text.type(testText[2])
-    text.align.end()
-    await text.type(testText[3], Class.HEART)
-    text.blur()
-    await text.type(testText[4])
-    await text.type(testText[5])
-    await text.delete(/e/)
-    await text.delete()
-    await text.type(testText[4])
-    await text.type(testText[5])
-    text.align.start()
-    await text.type(' you')
-    await text.type(' more')
-    text.align.center()
-    await text.type(' than')
-    await text.delete('❤')
-    await text.delete(' than')
-    text.align.end()
-    await text.type(' than')
-    await text.jump('you ')
-    await text.type('even ')
-    await text.jump()
-    await text.replace(' than', ' than JavaScript', Class.DEFAULT, 200, 500)
-    await text.pause(500)
-    await text.replace(' than JavaScript', ' than')
-    await text.pause(500)
-    await text.replace(' than', ' than JavaScript')
-    await text.pause(500)
-    await text.jump(/I l/)
-    // text.setSpeed(500) // debug
-    await text.type('❤', Class.HEART)
-    text.blur()
-    await text.jump('I')
-    await text.jump('you ')
-    await text.jump('I')
-    text.align.start()
-    await text.delete()
-    await text.type('I')
-    await text.jump()
-}
-
-start()
-
-// </tests>
+export {Class, getCharElements, getResult, getNumberByRange, textWrapper, text}
