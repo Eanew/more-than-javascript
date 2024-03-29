@@ -1,5 +1,4 @@
-// TODO: Функция рандомизации временных промежутков во время печати.
-// TODO: Функции-обёртки над typeText, deleteText, jump для задания временных промежутков во время печати.
+// TODO: Проверка на min = 0 и max = 0 для мгновенных действий за 1 рендер.
 // TODO: Массив "что я люблю".
 // TODO: Демо.
 // TODO: Возможность изменять классы существующих символов без путешествий каретки.
@@ -10,7 +9,7 @@ const CHAR_ELEMENT_TYPE = 'text'
 const CHAR_ELEMENT_ID_PREFIX = 'char_'
 
 const Class = {
-    EMPTY: '',
+    DEFAULT: '',
     HEART: 'heart',
 }
 
@@ -31,7 +30,12 @@ const textWrapper = document.querySelector('.content')
 let typeAlign = TypeAlign.CENTER
 let caretIndex = 0
 let textOffset = 0
+let minSpeed = 0
+let maxSpeed = 0
 let typedChars = 0
+let lastTypedChar = null
+
+const getNumberByRange = (from, to = from) => from + Math.round(Math.random() * (to - from))
 
 const getCharElements = index => {
     const charElements = Array.from(textWrapper.querySelectorAll(CHAR_ELEMENT_TAG))
@@ -43,14 +47,17 @@ const getResult = () => getCharElements().reduce((result, {value}) => result + v
 
 const getCharWidth = () => parseFloat(getComputedStyle(textWrapper).width) / getResult().length || 0
 
-const getRange = text => {
-    const start = getResult().match (text)?.index
+const getRange = search => {
+    if (!search) return [search, search]
+
+    const result = getResult()
+    const {0: text, index: start} = typeof search === 'string' ? result.match(search) : search.exec(result)
     const end = Math.max(start + text.length - 1, start)
 
     return [start, end]
 }
 
-const createChar = (value, classList = Class.EMPTY) => {
+const createChar = (value, classList = Class.DEFAULT) => {
     const id = CHAR_ELEMENT_ID_PREFIX + typedChars++
     const inputAttributes = {value, id, name: id, type: CHAR_ELEMENT_TYPE, tabIndex: -1}
     const char = Object.assign(document.createElement(CHAR_ELEMENT_TAG), inputAttributes)
@@ -74,7 +81,7 @@ const setCaret = char => {
 }
 
 const jump = (to = getCharElements().length - 1) => {
-    if (typeof to === 'string') [, to] = getRange(to)
+    if (typeof to !== 'number') [, to] = getRange(to)
 
     const lastAlign = typeAlign
 
@@ -83,23 +90,19 @@ const jump = (to = getCharElements().length - 1) => {
     typeAlign = lastAlign
 }
 
-const typeText = (text, classList = Class.EMPTY) => {
+const typeText = (text, classList = Class.DEFAULT) => {
     const from = caretIndex + 1
     const nextChar = getCharElements(from)
 
-    let lastChar
-
     for (let index = from; index < from + text.length; index++) {
-        lastChar = createChar(text[index - from], classList)
-        insertChar(lastChar, nextChar)
-        setCaret(lastChar)
+        lastTypedChar = createChar(text[index - from], classList)
+        insertChar(lastTypedChar, nextChar)
+        setCaret(lastTypedChar)
     }
-
-    return lastChar
 }
 
 const deleteText = (from = caretIndex - 1, to = from + 1) => {
-    if (typeof from === 'string') {
+    if (typeof from !== 'number') {
         [from, to] = getRange(from)
         from--
     }
@@ -113,55 +116,124 @@ const deleteText = (from = caretIndex - 1, to = from + 1) => {
     }
 }
 
-const replaceText = (currentText, replacement, classList = Class.EMPTY) => {
-    deleteText(currentText)
-    typeText(replacement, classList)
+const replaceText = (current, update, classList = Class.DEFAULT) => {
+    deleteText(current)
+    typeText(update, classList)
 }
 
-const align = {
-    center: () => (typeAlign = TypeAlign.CENTER),
-    start: () => (typeAlign = TypeAlign.START),
-    end: () => (typeAlign = TypeAlign.END),
-}
+const parseSpeed = (min, max = min) => typeof min !== 'number' ? [minSpeed, maxSpeed] : [min, max]
+
+const defer = (action, min, max) => new Promise(resolve => {
+    setTimeout(() => {
+        action()
+        resolve()
+    }, getNumberByRange(min, max))
+})
 
 const preventAction = event => event.preventDefault()
+
+const text = {
+    async type(text, classList, min, max) {
+        ;[min, max] = parseSpeed(min, max)
+
+        for (const char of text) {
+            await defer(() => typeText(char, classList), min, max)
+        }
+    },
+
+    async delete(text, min, max) {
+        ;[min, max] = parseSpeed(min, max)
+        ;[from = caretIndex - 1, to = from + 1] = getRange(text)
+        from -= Boolean(text)
+
+        for (let index = to; index > from; index--) {
+            await (bindedIndex => defer(() => deleteText(bindedIndex - 1), min, max))(index)
+        }
+    },
+
+    async replace(text, update, classList, min, max) {
+        await this.delete(text, min, max)
+        await this.type(update, classList, min, max)
+    },
+
+    async jump(text, min, max) {
+        ;[min, max] = parseSpeed(min, max)
+        ;[, to = getCharElements().length - 1] = getRange(text)
+
+        const isNegative = to < caretIndex
+        const isContinues = index => isNegative ? (index >= to) : (index <= to)
+        const direction = isNegative ? -1 : 1
+
+        for (let index = caretIndex; isContinues(index); index += direction) {
+            await (bindedIndex => defer(() => jump(bindedIndex), min, max))(index)
+        }
+    },
+
+    blur() {
+        lastTypedChar.blur()
+    },
+
+    align: {
+        center: () => {typeAlign = TypeAlign.CENTER},
+        start: () => {typeAlign = TypeAlign.START},
+        end: () => {typeAlign = TypeAlign.END},
+    },
+
+    setSpeed(min, max = min) {
+        minSpeed = min
+        maxSpeed = max
+    },
+}
 
 textWrapper.addEventListener('keydown', preventAction)
 textWrapper.addEventListener('keypress', preventAction)
 textWrapper.focus()
+text.setSpeed(200, 700)
 
 // <tests>
 
-const text = 'I l❤ve you even more than JavaScript'
+const testText = 'I l❤ve you even more than JavaScript'
 
-let time = 0
-let speed = 0
+const start = async () => {
+    text.setSpeed(0)
+    await text.type(testText[0])
+    await text.type(testText[1])
+    await text.type(testText[2])
+    text.align.end()
+    await text.type(testText[3], Class.HEART)
+    text.blur()
+    await text.type(testText[4])
+    await text.type(testText[5])
+    await text.delete(/e/)
+    await text.delete()
+    await text.type(testText[4])
+    await text.type(testText[5])
+    text.align.start()
+    await text.type(' you')
+    await text.type(' more')
+    text.align.center()
+    await text.type(' than')
+    await text.delete('❤')
+    await text.delete(' than')
+    text.align.end()
+    await text.type(' than')
+    await text.jump('you ')
+    await text.type('even ')
+    await text.jump()
+    await text.replace(' than', ' than JavaScript', Class.DEFAULT, 200, 500)
+    await text.jump(/I l/)
+    text.setSpeed(500) // debug
+    await text.type('❤', Class.HEART)
+    text.blur()
+    await text.jump('I')
+    await text.jump('you ')
+    await text.jump('I')
+    text.align.start()
+    await text.delete()
+    await text.type('I')
+    await text.jump()
+}
 
-setTimeout(() => typeText(text[0]), time += speed)
-setTimeout(() => typeText(text[1]), time += speed)
-setTimeout(() => typeText(text[2]) || align.end(), time += speed)
-setTimeout(() => typeText(text[3], Class.HEART).blur(), time += speed)
-setTimeout(() => typeText(text[4]), time += speed)
-setTimeout(() => typeText(text[5]), time += speed)
-speed = 600
-setTimeout(() => deleteText(), time += speed)
-setTimeout(() => typeText(text[5]) || align.start(), time += speed)
-setTimeout(() => typeText(' you'), time += speed)
-setTimeout(() => typeText(' more') || align.center(), time += speed)
-setTimeout(() => typeText(' than'), time += speed)
-setTimeout(() => deleteText('❤'), time += speed)
-setTimeout(() => deleteText(' than'), time += speed)
-setTimeout(() => align.end(), time += speed)
-setTimeout(() => typeText(' than'), time += speed)
-setTimeout(() => jump('you '), time += speed)
-setTimeout(() => typeText('even '), time += speed)
-setTimeout(() => jump(), time += speed)
-setTimeout(() => replaceText(' than', ' than JavaScript'), time += speed)
-setTimeout(() => jump('I l'), time += speed)
-setTimeout(() => typeText('❤', Class.HEART).blur(), time += speed)
-setTimeout(() => jump(0), time += speed)
-setTimeout(() => align.start(), time += speed)
-setTimeout(() => deleteText(), time += speed)
-setTimeout(() => typeText('I'), time += speed)
+start()
 
 // </tests>
