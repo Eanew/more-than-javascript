@@ -136,6 +136,8 @@ const text = {
     async type(text, classList, min, max) {
         ;[min, max] = parseSpeed(min, max)
 
+        if (min === 0 && max === 0) return typeText(text, classList)
+
         for (const char of text) {
             await defer(() => typeText(char, classList), min, max)
         }
@@ -146,19 +148,27 @@ const text = {
         ;[from = caretIndex - 1, to = from + 1] = getRange(text)
         from -= Boolean(text)
 
+        if (min === 0 && max === 0) return deleteText(from, to)
+
         for (let index = to; index > from; index--) {
             await (bindedIndex => defer(() => deleteText(bindedIndex - 1), min, max))(index)
         }
     },
 
-    async replace(text, update, classList, min, max) {
-        await this.delete(text, min, max)
+    async replace(current, update, classList, min, max) {
+        ;[min, max] = parseSpeed(min, max)
+
+        if (min === 0 && max === 0) return replaceText(current, update, classList)
+
+        await this.delete(current, min, max)
         await this.type(update, classList, min, max)
     },
 
     async jump(text, min, max) {
         ;[min, max] = parseSpeed(min, max)
         ;[, to = getCharElements().length - 1] = getRange(text)
+
+        if (min === 0 && max === 0) return jump(to)
 
         const isNegative = to < caretIndex
         const isContinues = index => isNegative ? (index >= to) : (index <= to)
@@ -195,7 +205,7 @@ text.setSpeed(200, 700)
 const testText = 'I l❤ve you even more than JavaScript'
 
 const start = async () => {
-    text.setSpeed(0)
+    text.setSpeed(200, 400)
     await text.type(testText[0])
     await text.type(testText[1])
     await text.type(testText[2])
@@ -221,8 +231,10 @@ const start = async () => {
     await text.type('even ')
     await text.jump()
     await text.replace(' than', ' than JavaScript', Class.DEFAULT, 200, 500)
+    await text.replace(' than JavaScript', ' than')
+    await text.replace(' than', ' than JavaScript')
     await text.jump(/I l/)
-    text.setSpeed(500) // debug
+    // text.setSpeed(500) // debug
     await text.type('❤', Class.HEART)
     text.blur()
     await text.jump('I')
