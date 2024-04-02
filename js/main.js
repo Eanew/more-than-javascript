@@ -1,14 +1,8 @@
-// TODO: Возможность изменять классы существующих символов без путешествий каретки.
-// TODO: Подсказка с переводом на русский язык при наведении на текст.
+const START_BUTTON = 'Enter'
 
 const CHAR_ELEMENT_TAG = 'input'
 const CHAR_ELEMENT_TYPE = 'text'
 const CHAR_ELEMENT_ID_PREFIX = 'char_'
-
-const Class = {
-    DEFAULT: '',
-    HEART: 'heart',
-}
 
 const TypeAlign = {
     CENTER: 'CENTER',
@@ -22,7 +16,8 @@ const OffsetMultiplier = {
     [TypeAlign.END]: -1,
 }
 
-const textWrapper = document.querySelector('.content')
+const screen = document.querySelector('.contentWrapper')
+const textWrapper = screen.querySelector('.content')
 
 let typeAlign = TypeAlign.CENTER
 let caretIndex = 0
@@ -40,9 +35,16 @@ const getCharElements = index => {
     return typeof index === 'number' ? charElements[index] : charElements
 }
 
+const getLastChar = () => lastTypedChar
+
 const getResult = () => getCharElements().reduce((result, {value}) => result + value, '')
 
-const getCharWidth = () => parseFloat(getComputedStyle(textWrapper).width) / getResult().length || 0
+const getCharWidth = () => {
+    const textWrapperWidth = parseFloat(getComputedStyle(textWrapper).width)
+    const materialCharsCount = getCharElements().filter(char => getComputedStyle(char).position !== 'absolute').length
+
+    return textWrapperWidth / materialCharsCount || 0
+}
 
 const getRange = search => {
     if (!search) return [search, search]
@@ -54,12 +56,12 @@ const getRange = search => {
     return [start, end]
 }
 
-const createChar = (value, classList = Class.DEFAULT) => {
+const createChar = (value, classList = []) => {
     const id = CHAR_ELEMENT_ID_PREFIX + typedChars++
-    const inputAttributes = {value, id, name: id, type: CHAR_ELEMENT_TYPE, tabIndex: -1}
+    const inputAttributes = {value, id, name: id, type: CHAR_ELEMENT_TYPE, tabIndex: -1, spellcheck: false}
     const char = Object.assign(document.createElement(CHAR_ELEMENT_TAG), inputAttributes)
 
-    if (classList) char.classList.add(...[].concat(classList))
+    if (classList?.length) char.classList.add(...[].concat(classList))
 
     return char
 }
@@ -87,7 +89,7 @@ const jump = (to = getCharElements().length - 1) => {
     typeAlign = lastAlign
 }
 
-const typeText = (text, classList = Class.DEFAULT) => {
+const typeText = (text, classList) => {
     const from = caretIndex + 1
     const nextChar = getCharElements(from)
 
@@ -113,7 +115,7 @@ const deleteText = (from = caretIndex - 1, to = from + 1) => {
     }
 }
 
-const replaceText = (current, update, classList = Class.DEFAULT) => {
+const replaceText = (current, update, classList) => {
     deleteText(current)
     typeText(update, classList)
 }
@@ -182,6 +184,10 @@ const text = {
         await defer(() => {}, min, max)
     },
 
+    clear() {
+        getCharElements().forEach(char => char.remove())
+    },
+
     blur() {
         lastTypedChar.blur()
     },
@@ -198,9 +204,35 @@ const text = {
     },
 }
 
+const mouseMoveHandler = () => {
+    screen.style.cursor = 'default'
+    screen.removeEventListener('mousemove', mouseMoveHandler)
+}
+
+const start = async (action) => {
+    const startKeyPressHandler = event => {
+        if (event.key !== START_BUTTON) return
+
+        text.clear()
+        document.removeEventListener('keypress', startKeyPressHandler)
+
+        screen.requestFullscreen().then(() => {
+            screen.style.cursor = 'none'
+            setTimeout(() => screen.addEventListener('mousemove', mouseMoveHandler), 1000)
+            action()
+        })
+    }
+    
+    await text.type('Press ' + START_BUTTON, [], 0)
+
+    text.blur()
+    document.addEventListener('keypress', startKeyPressHandler)
+}
+
 textWrapper.addEventListener('keydown', preventAction)
 textWrapper.addEventListener('keypress', preventAction)
+
 textWrapper.focus()
 text.setSpeed(200, 700)
 
-export {Class, getCharElements, getResult, getNumberByRange, textWrapper, text}
+export {getCharElements, getLastChar, getCharWidth, getResult, getNumberByRange, start, text}

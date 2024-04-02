@@ -1,34 +1,16 @@
 $textHeight: 38;
-
-@keyframes beating {
-    0%, 40%, 80% {
-        transform: scale(1);
-    }
-
-    20%, 60% {
-        transform: scale(1.1);
-    }
-}
+$charWidth: 19;
 
 body {
     margin: 0;
 }
 
-.content-wrapper {
+.contentWrapper {
     position: absolute;
     width: 100vw;
     height: 100vh;
-}
-
-.content {
-    position: absolute;
-    top: calc(50% - #{$textHeight / 2}px);
-    left: 50%;
-    height: #{$textHeight}px;
-
-    &:focus, &:active {
-        outline: none;
-    }
+    overflow: hidden;
+    background-color: #fff;
 
     &::after {
         content: "";
@@ -40,6 +22,17 @@ body {
     }
 }
 
+.content {
+    position: absolute;
+    top: calc(50% - #{$textHeight / 2}px);
+    left: 50%;
+    height: #{$textHeight}px;
+
+    &:focus, &:active {
+        outline: none;
+    }
+}
+
 input {
     font-family: 'Courier New', Courier, monospace;
     font-size: xx-large;
@@ -47,13 +40,57 @@ input {
     text-align: center;
     color: #000000;
     caret-color: #000000;
-    width: 19px;
+    width: #{$charWidth}px;
     margin: 0;
     padding: 0;
     border: none;
 
     &:focus, &:active {
         outline: none;
+    }
+}
+
+// <effects>
+
+$fadeX: 5;
+$fadeY: 9;
+$fadeDecrease: 0.7;
+$fadeDuration: 4;
+$fadeAnimationType: forwards;
+
+@keyframes beating {
+    0%, 40%, 80% {
+        transform: scale(1);
+    }
+
+    20%, 60% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes fadeUp {
+    100% {
+        transform: scale($fadeDecrease) translate(-#{$fadeX * $charWidth}px, -#{$fadeY * $textHeight}px);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeDown {
+    100% {
+        transform: scale($fadeDecrease) translate(-#{$fadeX * $charWidth}px, #{$fadeY * $textHeight}px);
+        opacity: 0;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        width: $charWidth
+    }
+
+    50% {
+        transform: scale(1.1);
+        width: 21px;
     }
 }
 
@@ -65,3 +102,34 @@ input {
     transform: scale(1);
     animation: 0.8s beating infinite;
 }
+
+.italic {
+    font-style: italic;
+}
+
+.offset {
+    position: absolute;
+    top: 0;
+}
+
+.fadeUp {
+    animation: #{$fadeDuration}s fadeUp #{$fadeAnimationType};
+}
+
+.fadeDown {
+    animation: #{$fadeDuration}s fadeDown #{$fadeAnimationType};
+}
+
+.yellow {
+    color: #edc00c;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.pulse {
+    animation: 0.3s pulse;
+}
+
+// </effects>
