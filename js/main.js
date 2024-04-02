@@ -49,11 +49,29 @@ const getCharWidth = () => {
 const getRange = search => {
     if (!search) return [search, search]
 
+    let text = search
+    let start
+
     const result = getResult()
-    const {0: text, index: start} = typeof search === 'string' ? result.match(search) : search.exec(result)
+
+    if (typeof search === 'string') {
+        start = result.indexOf(search)
+    } else {
+        const match = search.exec(result)
+
+        text = match[0]
+        start = match.index
+    }
+
     const end = Math.max(start + text.length - 1, start)
 
     return [start, end]
+}
+
+const getFragment = search => {
+    const [from, to] = getRange(search)
+
+    return getCharElements().slice(from, to + 1)
 }
 
 const createChar = (value, classList = []) => {
@@ -235,4 +253,4 @@ textWrapper.addEventListener('keypress', preventAction)
 textWrapper.focus()
 text.setSpeed(200, 700)
 
-export {getCharElements, getLastChar, getCharWidth, getResult, getNumberByRange, start, text}
+export {getCharElements, getFragment, getLastChar, getCharWidth, getResult, getNumberByRange, start, text}

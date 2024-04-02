@@ -1,9 +1,9 @@
-import {getCharElements, getCharWidth, getLastChar, getNumberByRange, start, text} from './main.js'
+import {getCharElements, getFragment, getCharWidth, getLastChar, getNumberByRange, start, text} from './main.js'
 
 const HEX_INIT_UNIT = '#'
 const HEX_COLORS_COUNT = 3
 const COLOR_VALUE_RANGE = [0, 190]
-const FADE_INTERVAL = 200
+const FADE_INTERVAL = 170
 
 const Effect = {
     HEART: 'heart',
@@ -35,6 +35,7 @@ const thingsThatILove = [
     'other foxes',
     'night',
     'Avril Lavigne',
+    'wind',
     'thunderstorm',
     'skating',
     'cashew',
@@ -45,13 +46,14 @@ const thingsThatILove = [
     'psychology',
     'water',
     'singing along to Paramore',
-    'wind',
     'complicating everything',
 ]
 
+// thingsThatILove.sort((a, b) => a.length - b.length)
+
 const defaultTypeSpeed = [100, 200]
 
-let fadeDirection = FadeDirection.UP
+let fadeDirection = FadeDirection.DOWN
 
 const toggleFadeDirection = () => {
     fadeDirection = fadeDirection === FadeDirection.UP ? FadeDirection.DOWN : FadeDirection.UP
@@ -59,7 +61,7 @@ const toggleFadeDirection = () => {
     return fadeDirection
 }
 
-const generateRandomColor = () => {
+const getRandomColor = () => {
     let result = HEX_INIT_UNIT
 
     for (let index = 0; index < HEX_COLORS_COUNT; index++) result += getNumberByRange(...COLOR_VALUE_RANGE).toString(16)
@@ -67,12 +69,12 @@ const generateRandomColor = () => {
     return result
 }
 
-const fade = async (chars, direction) => {
+const fade = async (chars, direction, speed = 40) => {
     const charWidth = getCharWidth()
-    const charsColor = generateRandomColor()
+    const charsColor = getRandomColor()
 
     for (let index = 0; index < chars.length; index++) {
-        await text.type(chars[index], [direction, Effect.OFFSET], 40)
+        await text.type(chars[index], [direction, Effect.OFFSET], speed)
 
         const char = getLastChar()
 
@@ -86,9 +88,7 @@ const fade = async (chars, direction) => {
     await text.pause(FADE_INTERVAL)
 }
 
-const pulse = () => {
-    const chars = getCharElements()
-
+const pulse = (chars = getCharElements()) => {
     for (let index = 0; index < chars.length; index++) {
         setTimeout(() => {
             chars[index].classList.add(Effect.PULSE)
@@ -103,6 +103,9 @@ start(async () => {
     await text.pause(1000)
     await text.type(' l')
     await text.type('❤', Effect.HEART)
+
+    text.blur()
+
     await text.type('ve you')
     await text.pause(300)
 
@@ -115,19 +118,19 @@ start(async () => {
     await text.pause(800)
     await text.type('..', '', 500)
     await text.pause(1200)
-    await text.delete()
-    await text.delete()
+    await text.delete('..')
     await text.type(' ')
     await text.pause(600)
 
     for (const thing of thingsThatILove) await fade(thing, toggleFadeDirection())
 
-    await text.pause(1500)
+    // for (let index = 0; index < thingsThatILove.length; index++) {
+    //     await fade(thingsThatILove, toggleFadeDirection(), 70 - index * 2)
+    // }
+
+    await text.pause(2000)
     await text.jump('than ', 0)
     await text.jump('you ', 40, 100)
-
-    // text.align.end()
-    
     await text.type('even ', Effect.ITALIC, 500)
     await text.jump('than ', 50)
     await text.pause(300)
@@ -137,5 +140,6 @@ start(async () => {
     await text.type('Java', Effect.BOLD, 100)
     await text.type('Script', [Effect.BOLD, Effect.YELLOW], 100)
 
+    text.blur()
     pulse()
 })

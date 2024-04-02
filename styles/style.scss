@@ -52,8 +52,8 @@ input {
 
 // <effects>
 
-$fadeX: 5;
-$fadeY: 9;
+$fadeX: 7;
+$fadeY: 11;
 $fadeDecrease: 0.7;
 $fadeDuration: 4;
 $fadeAnimationType: forwards;
@@ -90,7 +90,7 @@ $fadeAnimationType: forwards;
 
     50% {
         transform: scale(1.1);
-        width: 21px;
+        width: 20px;
     }
 }
 
