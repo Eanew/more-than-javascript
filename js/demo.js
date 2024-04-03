@@ -92,6 +92,10 @@ const pulse = (chars = getCharElements()) => {
     for (let index = 0; index < chars.length; index++) {
         setTimeout(() => {
             chars[index].classList.add(Effect.PULSE)
+
+            setTimeout(() => {
+                chars[index].classList.remove(Effect.PULSE)
+            }, parseFloat(getComputedStyle(chars[index]).animationDuration) * 1000)
         }, (chars.length - index) * 15);
     }
 }
